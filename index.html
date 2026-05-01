@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Real World Budget Challenge — Financial Literacy Simulation</title>
+  <meta name="description" content="A high school financial literacy simulation where students earn a real entry-level salary, pay taxes, and make monthly spending decisions." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-page:        #f1f5f9;
+      --bg-card:        #ffffff;
+      --bg-muted:       #f8fafc;
+      --text-primary:   #0f172a;
+      --text-muted:     #475569;
+      --text-subtle:    #94a3b8;
+      --border:         #e2e8f0;
+      --border-med:     #cbd5e1;
+      --radius-md:      8px;
+      --radius-lg:      12px;
+      --mono:           'Courier New', Courier, monospace;
+
+      --primary:        #4f46e5;
+      --primary-hover:  #4338ca;
+      --primary-light:  #eef2ff;
+      --primary-border: #c7d2fe;
+
+      --info-text:      #1d4ed8;
+      --info-bg:        #eff6ff;
+      --info-border:    #bfdbfe;
+      --success-text:   #15803d;
+      --success-bg:     #f0fdf4;
+      --success-border: #86efac;
+      --danger-text:    #b91c1c;
+      --danger-bg:      #fef2f2;
+      --danger-border:  #fca5a5;
+      --warn-text:      #92400e;
+      --warn-bg:        #fffbeb;
+      --warn-border:    #fcd34d;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-page);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+      line-height: 1.5;
+    }
+
+    #app { max-width: 660px; margin: 0 auto; }
+
+    /* Typography */
+    h1 { font-size: 26px; font-weight: 700; margin-bottom: .4rem; }
+    h2 { font-size: 18px; font-weight: 600; margin-bottom: .4rem; }
+    p  { font-size: 15px; line-height: 1.65; }
+    .label {
+      font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+      color: var(--text-muted); margin-bottom: .3rem; font-weight: 600;
+    }
+    .step-tag {
+      font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+      color: var(--text-muted); margin-bottom: .35rem; font-weight: 600;
+    }
+    .mono { font-family: var(--mono); }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 1rem;
+    }
+    .card-head {
+      background: var(--bg-muted); border-bottom: 1px solid var(--border);
+      padding: 1rem 1.25rem;
+    }
+    .card-body { padding: 1.25rem; }
+
+    /* Badges */
+    .badge {
+      display: inline-block; font-size: 11px; font-weight: 700;
+      padding: 3px 10px; border-radius: 20px;
+    }
+    .badge-info    { background: var(--primary-light); color: var(--primary);      border: 1px solid var(--primary-border); }
+    .badge-success { background: var(--success-bg);    color: var(--success-text); border: 1px solid var(--success-border); }
+    .badge-danger  { background: var(--danger-bg);     color: var(--danger-text);  border: 1px solid var(--danger-border); }
+    .badge-warn    { background: var(--warn-bg);       color: var(--warn-text);    border: 1px solid var(--warn-border); }
+
+    /* Alerts */
+    .alert {
+      border-radius: var(--radius-md); padding: 1rem 1.25rem;
+      margin-bottom: 1rem; font-size: 14px; line-height: 1.65;
+    }
+    .alert-warn    { background: var(--warn-bg);    color: var(--warn-text);    border: 1px solid var(--warn-border); }
+    .alert-success { background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); }
+    .alert-danger  { background: var(--danger-bg);  color: var(--danger-text);  border: 1px solid var(--danger-border); }
+    .alert-info    { background: var(--info-bg);    color: var(--info-text);    border: 1px solid var(--info-border); }
+
+    /* Buttons */
+    button {
+      font-family: inherit; font-size: 15px; font-weight: 500; cursor: pointer;
+      border-radius: var(--radius-md); padding: .65rem 1.5rem;
+      border: 1px solid var(--border-med); background: var(--bg-card);
+      color: var(--text-primary); transition: background .12s, opacity .12s, transform .08s;
+    }
+    button:hover   { background: var(--bg-muted); }
+    button:active  { transform: scale(.98); }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+    .btn-full { width: 100%; text-align: center; display: block; }
+
+    /* Progress bar */
+    .progress { height: 6px; background: var(--border); border-radius: 3px; margin-bottom: 1.25rem; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--primary); border-radius: 3px; transition: width .4s ease; }
+
+    /* Table rows */
+    .row {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: .65rem 0; border-bottom: 1px solid var(--border); gap: .5rem;
+    }
+    .row:last-child { border-bottom: none; }
+
+    /* Budget summary grid */
+    .budget-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: .6rem; }
+    .budget-cell {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: .75rem;
+    }
+
+    /* Budget usage bar */
+    .budget-bar-wrap { height: 8px; background: var(--border); border-radius: 4px; margin-bottom: 1rem; overflow: hidden; }
+    .budget-bar-fill { height: 100%; border-radius: 4px; transition: width .35s ease, background .35s ease; }
+
+    /* Choice cards */
+    .choice {
+      border: 1px solid var(--border); border-radius: var(--radius-md);
+      padding: .9rem 1rem; margin-bottom: .6rem; cursor: pointer;
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 1rem; transition: background .1s, border-color .1s;
+    }
+    .choice:hover    { background: var(--bg-muted); border-color: var(--border-med); }
+    .choice.selected { border: 2px solid var(--primary); background: var(--primary-light); }
+    .choice.warn-card             { border-color: #fca5a5; }
+    .choice.warn-card:hover       { background: var(--danger-bg); }
+    .choice.selected.warn-card    { border: 2px solid #dc2626; background: var(--danger-bg); }
+
+    /* Spin box */
+    .spin-box {
+      min-height: 160px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center; padding: 1.5rem;
+    }
+
+    /* Intro hero */
+    .hero {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      color: #fff; border-radius: var(--radius-lg); padding: 2.25rem 1.5rem 2rem;
+      margin-bottom: 1rem; text-align: center;
+    }
+    .hero h1  { color: #fff; font-size: 28px; margin-bottom: .5rem; }
+    .hero p   { color: rgba(255,255,255,.82); font-size: 15px; }
+    .hero-tag { color: rgba(255,255,255,.6); font-size: 12px; text-transform: uppercase; letter-spacing: .1em; font-weight: 600; margin-bottom: .5rem; }
+
+    /* Station top color strip */
+    .station-strip { height: 5px; }
+
+    /* Tax visual bar */
+    .tax-bar-row  { display: flex; height: 40px; border-radius: 6px; overflow: hidden; gap: 2px; }
+    .tax-bar-seg  { display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; min-width: 0; overflow: hidden; }
+    .tax-bar-leg  { display: flex; gap: 1rem; margin-top: .5rem; flex-wrap: wrap; }
+    .tax-bar-dot  { font-size: 12px; color: var(--text-muted); }
+
+    /* Life event card */
+    .event-body  { padding: 2.25rem 1.5rem 1.75rem; text-align: center; }
+    .event-emoji { font-size: 60px; margin-bottom: .75rem; line-height: 1; }
+    .event-outcome {
+      border-radius: var(--radius-md); padding: 1rem 1.25rem;
+      margin: 1.25rem 0; text-align: left;
+    }
+
+    /* Reflection list */
+    .reflect-list li { font-size: 14px; line-height: 1.7; color: var(--text-muted); margin-bottom: .65rem; }
+
+    /* Misc */
+    .footnote    { font-size: 11px; color: var(--text-subtle); text-align: center; margin-bottom: 1rem; }
+    .step-row    { display: flex; gap: 12px; align-items: flex-start; margin-bottom: .9rem; }
+    .ded-note    { font-size: 11px; color: var(--text-subtle); margin-top: 2px; }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* ===================================================================
+   DATA
+   =================================================================== */
+const JOBS = [
+  { title: 'Retail Sales Associate',   salary: 33000, employer: 'Target / Walmart / Retail Store',    desc: 'Assist customers, stock shelves, and operate cash registers.' },
+  { title: 'Food Prep Worker',         salary: 29000, employer: 'Restaurant / School Cafeteria',       desc: 'Prepare ingredients, assist kitchen staff, and maintain cleanliness.' },
+  { title: 'Administrative Assistant', salary: 42000, employer: 'Corporate Office / Business',         desc: 'Answer phones, manage files, schedule appointments, and support staff.' },
+  { title: 'Medical Assistant',        salary: 40000, employer: "Doctor's Office / Clinic",            desc: 'Take patient vitals, assist physicians, and handle scheduling.' },
+  { title: 'Customer Service Rep',     salary: 38000, employer: 'Call Center / Business',              desc: 'Handle customer inquiries, process orders, and resolve complaints.' },
+  { title: 'Warehouse Associate',      salary: 36500, employer: 'Amazon / FedEx Distribution Center', desc: 'Pick, pack, and ship orders. Manage inventory and operate equipment.' },
+  { title: 'Security Guard',           salary: 34500, employer: 'Office Building / Shopping Mall',     desc: 'Monitor premises, verify IDs, and write incident reports.' },
+  { title: 'Home Health Aide',         salary: 30000, employer: 'Home Care Agency',                    desc: 'Assist elderly or disabled clients with daily activities and health monitoring.' },
+  { title: 'Construction Laborer',     salary: 40500, employer: 'Construction Company',                desc: 'Move materials, assist skilled workers, and operate basic equipment on job sites.' },
+  { title: 'Delivery Driver',          salary: 39000, employer: 'UPS / FedEx / Local Courier',         desc: 'Pick up and deliver packages, manage routes, and interact with customers.' },
+  { title: 'Childcare Worker',         salary: 28500, employer: 'Daycare Center',                      desc: 'Supervise children, lead activities, and communicate with parents.' },
+  { title: 'Bank Teller',              salary: 37500, employer: 'Local Bank / Credit Union',           desc: 'Process transactions, assist customers with accounts, and balance cash drawers.' },
+];
+
+const STATION_META = {
+  housing:        { color: '#3b82f6', emoji: '🏠' },
+  transportation: { color: '#f97316', emoji: '🚗' },
+  groceries:      { color: '#22c55e', emoji: '🛒' },
+  healthcare:     { color: '#ef4444', emoji: '🏥' },
+  entertainment:  { color: '#a855f7', emoji: '🎮' },
+  savings:        { color: '#10b981', emoji: '💰' },
+  loans:          { color: '#f59e0b', emoji: '🎓' },
+  clothing:       { color: '#ec4899', emoji: '👔' },
+};
+
+const STATIONS = [
+  { id: 'housing', name: 'Housing & Rent',
+    blurb: 'Housing is typically the largest monthly expense. Experts recommend spending no more than 30% of your take-home pay on rent or housing costs.',
+    choices: [
+      { label: 'Live with parents / family',      cost: 200,  note: 'Contribute $200/mo toward household bills' },
+      { label: 'Rent a room in a shared house',   cost: 650,  note: 'Shared with 2–3 roommates' },
+      { label: 'Studio apartment (solo)',         cost: 850,  note: 'Your own space, compact living' },
+      { label: '1-bedroom apartment (solo)',      cost: 1200, note: 'More space, significantly higher cost' },
+    ]
+  },
+  { id: 'transportation', name: 'Transportation',
+    blurb: 'Getting to work is non-negotiable. Factor in car payments, gas, insurance, or transit passes — this hits your budget every single month.',
+    choices: [
+      { label: 'Bike + occasional rideshare',      cost: 50,  note: 'Low cost, limited range' },
+      { label: 'Monthly transit pass',             cost: 90,  note: 'Bus, subway, or commuter rail' },
+      { label: 'Used car (payment + insurance)',   cost: 350, note: 'Older vehicle, some maintenance costs' },
+      { label: 'New car (payment + insurance)',    cost: 550, note: 'New vehicle, full coverage insurance required' },
+    ]
+  },
+  { id: 'groceries', name: 'Groceries & Food',
+    blurb: 'Food is essential — but how you eat makes a significant difference in your budget. Cooking at home costs far less than eating out regularly.',
+    choices: [
+      { label: 'Budget meal prep at home',     cost: 200, note: 'Cook most meals, buy in bulk' },
+      { label: 'Mix of cooking & eating out',  cost: 350, note: 'Balanced approach' },
+      { label: 'Mostly restaurants & takeout', cost: 550, note: 'Convenient but expensive' },
+    ]
+  },
+  { id: 'healthcare', name: 'Healthcare & Insurance',
+    blurb: 'One medical emergency without insurance can cost thousands of dollars out of pocket. This is one of the most consequential financial decisions you will make.',
+    choices: [
+      { label: 'Employer health plan',  cost: 150, note: 'Your share of employer-provided coverage' },
+      { label: 'ACA marketplace plan',  cost: 250, note: "If your employer doesn't offer coverage" },
+      { label: 'No insurance',          cost: 0,   note: 'One ER visit could cost $5,000+', warn: true },
+    ]
+  },
+  { id: 'entertainment', name: 'Entertainment & Subscriptions',
+    blurb: 'Everyone needs downtime. But subscription creep is a real budget killer — small monthly costs add up to hundreds per year without you noticing.',
+    choices: [
+      { label: 'Basic (1–2 streaming services)',      cost: 25,  note: 'Netflix, Hulu, or similar' },
+      { label: 'Standard (streaming + hobbies)',      cost: 75,  note: 'Gaming, concerts, recreational activities' },
+      { label: 'Premium (everything + events)',       cost: 150, note: 'All subscriptions + frequent outings' },
+    ]
+  },
+  { id: 'savings', name: 'Savings & Emergency Fund',
+    blurb: 'Experts recommend the 50/30/20 rule: 50% needs, 30% wants, 20% savings. Even saving a small amount now builds a habit that pays off for life.',
+    choices: [
+      { label: 'No savings this month',        cost: 0,   note: 'Living paycheck to paycheck' },
+      { label: 'Save 3% of monthly net pay',   pct: 0.03, note: 'Small but better than nothing' },
+      { label: 'Save 5% of monthly net pay',   pct: 0.05, note: 'Moderate savings habit' },
+      { label: 'Save 10% of monthly net pay',  pct: 0.10, note: 'Following the standard savings rule' },
+    ]
+  },
+  { id: 'loans', name: 'Student Loans & Debt',
+    blurb: 'Most entry-level jobs require training or education beyond high school. The education path you chose after graduation affects your monthly loan payment for years.',
+    choices: [
+      { label: 'Trade / certification program',  cost: 0,   note: 'Employer-sponsored or low-cost training' },
+      { label: 'Community college (2-year)',      cost: 150, note: 'Lower tuition, manageable debt' },
+      { label: '4-year public university',       cost: 350, note: 'Average federal student loan payment' },
+      { label: 'Private university',             cost: 550, note: 'Higher tuition = higher monthly payments' },
+    ]
+  },
+  { id: 'clothing', name: 'Clothing & Personal Care',
+    blurb: 'Looking professional matters in the workplace. There is a wide range between thrift shopping and brand-name everything — what fits your actual budget?',
+    choices: [
+      { label: 'Minimal — $30/month',          cost: 30,  note: 'Thrift stores, basics only' },
+      { label: 'Average — $80/month',          cost: 80,  note: 'Mix of budget and mid-range brands' },
+      { label: 'Fashion-forward — $150/month', cost: 150, note: 'Trendy, branded, well-groomed' },
+    ]
+  },
+];
+
+/* -------------------------------------------------------------------
+   LIFE EVENTS  (4 major, 6 minor — 1 of each is drawn per session)
+   ------------------------------------------------------------------- */
+const LIFE_EVENTS = [
+  /* MAJOR */
+  { id: 'medical', tier: 'major', emoji: '🏥', title: 'Medical Emergency',
+    story: 'You slipped on wet stairs at work and fractured your wrist. You need an ER visit, X-rays, a splint, and a follow-up appointment.',
+    outcome(s) {
+      if (s.choices.healthcare && s.choices.healthcare.warn)
+        return { amt: -2800, type: 'crisis',  msg: "Without insurance, you receive a bill for $2,800. You have no choice but to pay it — or go into debt. The broken wrist took six weeks to heal. The debt will take much longer." };
+      return { amt: -150, type: 'caution', msg: "Your insurance covered almost everything. You pay your $150 copay and move on. This is exactly what insurance is for." };
+    }
+  },
+  { id: 'car_trouble', tier: 'major', emoji: '🔧', title: 'Car Breakdown',
+    story: "Monday morning, your car won't start. The mechanic calls back: a failed alternator. It needs to be replaced today or you can't get to work.",
+    outcome(s) {
+      const hasCar = s.choices.transportation && s.choices.transportation.cost >= 350;
+      if (!hasCar) return { amt: 0, type: 'good', msg: "You take the bus like any other day. No car means no car repairs. Sometimes the budget-friendly choice protects you in ways you didn't expect." };
+      const hasSavings = s.choices.savings && s.choices.savings.cost > 0;
+      if (hasSavings) return { amt: -650, type: 'caution', msg: "The repair runs $650. It stings — but your emergency savings absorbs the hit so your rent still gets paid. This is exactly what that fund exists for." };
+      return { amt: -650, type: 'crisis', msg: "The repair runs $650. With no savings, you put it on a credit card at 24% APR. The interest will cost you more than the repair ever did." };
+    }
+  },
+  { id: 'hours_cut', tier: 'major', emoji: '📋', title: 'Hours Cut',
+    story: "Business has been slow. Your manager calls a team meeting: starting this week, everyone moves to reduced hours for the rest of the month. There was no warning.",
+    outcome(s) { return { amt: -320, type: 'crisis', msg: "You lose roughly two weeks of partial pay — $320 less this month. You still owe the same rent, the same car payment, the same phone bill. The budget doesn't shrink just because your paycheck did." }; }
+  },
+  { id: 'rent_hike', tier: 'major', emoji: '📬', title: 'Rent Increase Notice',
+    story: "An envelope from your landlord arrives. Rents in the area have risen. Effective next month, your monthly payment is going up — and there is nothing you can do about it.",
+    outcome(s) {
+      if (s.choices.housing && s.choices.housing.cost <= 200)
+        return { amt: 0, type: 'good', msg: "You live with family and contribute a flat amount each month. This doesn't affect you. That's a real financial advantage of that living arrangement." };
+      const bump = s.choices.housing && s.choices.housing.cost === 650 ? 75 : 100;
+      return { amt: -bump, type: 'caution', msg: `Your monthly housing cost increases by $${bump}. You can accept it or start apartment hunting — which costs time and money too. Welcome to renting.` };
+    }
+  },
+  /* MINOR */
+  { id: 'overtime', tier: 'minor', emoji: '💸', title: 'Overtime Opportunity',
+    story: "A coworker called out sick for five days straight and your manager asked if you could cover. You said yes — early mornings, long shifts, but extra pay.",
+    outcome(s) { return { amt: 280, type: 'good', msg: "Extra hours, extra pay: $280 added to this month's income. Hard work and availability have real rewards." }; }
+  },
+  { id: 'phone', tier: 'minor', emoji: '📱', title: 'Phone Disaster',
+    story: "Your phone slides off the break room table and lands face-down on concrete. The screen is completely shattered. You need it for work communications.",
+    outcome(s) {
+      const hasSavings = s.choices.savings && s.choices.savings.cost > 0;
+      if (hasSavings) return { amt: -180, type: 'caution', msg: "You buy a refurbished replacement for $180. Your savings take the hit so your budget doesn't have to. That's the whole point of an emergency fund." };
+      return { amt: -250, type: 'crisis', msg: "No savings, no buffer. You finance a replacement — $250 out of pocket this month with no cushion to absorb it. Something else has to give." };
+    }
+  },
+  { id: 'parking', tier: 'minor', emoji: '🚔', title: 'Parking Ticket',
+    story: "You were running late and parked in a 30-minute zone, then got stuck in a meeting that ran long.",
+    outcome(s) {
+      const hasCar = s.choices.transportation && s.choices.transportation.cost >= 350;
+      if (!hasCar) return { amt: 0, type: 'good', msg: "You ride the bus and don't own a car. Parking tickets simply aren't a thing for you. Another small, invisible benefit of skipping the car." };
+      return { amt: -65, type: 'caution', msg: "Parking ticket: $65. It's not the end of the world — but it wasn't in the budget either. These small, unplanned expenses are a constant feature of adult life." };
+    }
+  },
+  { id: 'grocery_spike', tier: 'minor', emoji: '🛒', title: 'Grocery Prices Up',
+    story: "Inflation hit the grocery store hard this month. Eggs, chicken, and dairy are all noticeably more expensive — no matter which store you go to.",
+    outcome(s) {
+      const fc = s.choices.groceries ? s.choices.groceries.cost : 350;
+      const extra = fc <= 200 ? 35 : fc >= 550 ? 80 : 50;
+      return { amt: -extra, type: 'caution', msg: `Grocery prices up — $${extra} more than expected this month. Inflation doesn't ask permission before it hits your budget.` };
+    }
+  },
+  { id: 'bonus', tier: 'minor', emoji: '🎉', title: 'Performance Bonus',
+    story: "Your supervisor pulls you aside before your shift. You've been showing up early, staying late, and handling difficult situations professionally. There's a small bonus in your next paycheck.",
+    outcome(s) { return { amt: 150, type: 'good', msg: "$150 performance bonus added to your paycheck. Reliability and a good attitude are noticed — and sometimes rewarded." }; }
+  },
+  { id: 'fraud', tier: 'minor', emoji: '🔐', title: 'Suspicious Charge',
+    story: "You open your bank app and notice an $87 charge from a company you've never heard of. You call your bank immediately.",
+    outcome(s) { return { amt: -87, type: 'caution', msg: "Your bank is investigating the dispute, but the refund takes 2 billing cycles. You're out $87 for now. Identity fraud and billing errors are a regular part of managing adult finances." }; }
+  },
+];
+
+/* ===================================================================
+   STATE
+   =================================================================== */
+let S = {
+  phase: 'intro',
+  job: null, taxes: null,
+  spinning: false, spinJob: null,
+  stIdx: 0, choices: {}, selChoice: null,
+  drawnEvents: [], lifeImpact: 0, evtIdx: 0,
+};
+let spIntvl = null;
+
+/* ===================================================================
+   UTILITIES
+   =================================================================== */
+function calcTaxes(sal) {
+  const mg = sal / 12;
+  const ti = Math.max(0, sal - 14600);
+  let fa = 0;
+  if      (ti <= 11600)  fa = ti * 0.10;
+  else if (ti <= 47150)  fa = 1160 + (ti - 11600) * 0.12;
+  else                   fa = 5426 + (ti - 47150) * 0.22;
+  const fed = fa / 12;
+  const pa  = sal * 0.0307 / 12;
+  const ss  = mg  * 0.062;
+  const mc  = mg  * 0.0145;
+  const tot = fed + pa + ss + mc;
+  return { mg, fed, pa, ss, mc, tot, net: mg - tot };
+}
+
+function cur(n, dec = 0) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency', currency: 'USD',
+    minimumFractionDigits: dec, maximumFractionDigits: dec
+  }).format(n);
+}
+
+function choiceCost(c) {
+  return c.pct !== undefined ? S.taxes.net * c.pct : (c.cost || 0);
+}
+
+function totalSpent() {
+  return Object.values(S.choices).reduce((a, c) => a + c.cost, 0);
+}
+
+function baseRemaining() {
+  return S.taxes ? S.taxes.net - totalSpent() : 0;
+}
+
+function finalRemaining() {
+  return baseRemaining() + (S.lifeImpact || 0);
+}
+
+function budgetBarPct(spent, net) {
+  return Math.min(100, Math.max(0, (spent / net) * 100));
+}
+
+function budgetBarColor(spent, net) {
+  const p = spent / net;
+  if (p < 0.6)  return '#4f46e5';
+  if (p < 0.8)  return '#ca8a04';
+  if (p < 1.0)  return '#ea580c';
+  return '#dc2626';
+}
+
+function drawLifeEvents() {
+  const majors = LIFE_EVENTS.filter(e => e.tier === 'major');
+  const minors = LIFE_EVENTS.filter(e => e.tier === 'minor');
+  const maj = majors[Math.floor(Math.random() * majors.length)];
+  const min = minors[Math.floor(Math.random() * minors.length)];
+  S.drawnEvents = [maj, min].map(e => ({ event: e, outcome: e.outcome(S) }));
+  S.lifeImpact  = S.drawnEvents.reduce((a, d) => a + d.outcome.amt, 0);
+}
+
+/* ===================================================================
+   RENDER — INTRO
+   =================================================================== */
+function renderIntro() {
+  return `
+    <div class="hero">
+      <p class="hero-tag">Financial Literacy Simulation</p>
+      <h1>Real World Budget Challenge</h1>
+      <p>You are about to experience what it actually feels like to earn a paycheck, pay taxes, and make real monthly budget decisions — on a real entry-level salary.</p>
+    </div>
+    <div class="card">
+      <div class="card-head"><p style="font-weight:600;font-size:15px">How it works</p></div>
+      <div class="card-body">
+        ${[
+          ['Step 1', 'Spin to receive your randomly assigned entry-level job and salary, based on real Bureau of Labor Statistics data.'],
+          ['Step 2', 'Review your pay stub and see how taxes reduce your actual take-home pay before you spend a single dollar.'],
+          ['Step 3', 'Navigate 8 spending stations and make real monthly budget decisions. Your balance updates live.'],
+          ['Step 4', 'Face two unexpected life events that may change your final outcome — then see your complete budget report.'],
+        ].map(([s, d]) => `
+          <div class="step-row">
+            <span class="badge badge-info" style="white-space:nowrap;margin-top:2px">${s}</span>
+            <p style="color:var(--text-muted);font-size:14px;line-height:1.65">${d}</p>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:.5rem">
+      <button class="btn-primary" id="btn-start" style="padding:.85rem 2.75rem;font-size:16px;font-weight:600">Start the simulation →</button>
+    </div>
+    <p class="footnote" style="margin-top:1.25rem">Salary data: U.S. Bureau of Labor Statistics 2024 &nbsp;·&nbsp; Tax data: 2024 IRS brackets + Pennsylvania state income tax</p>
+  `;
+}
+
+/* ===================================================================
+   RENDER — SPIN
+   =================================================================== */
+function renderSpin() {
+  const dj = S.spinJob || S.job;
+  return `
+    <p class="step-tag">Step 1 of 4 — Career Assignment</p>
+    <h1>Spin for your job</h1>
+    <p style="color:var(--text-muted);margin-bottom:1.25rem">In the real world, your first job isn't always your dream job. Press spin to find out where you're starting.</p>
+    <div class="card">
+      <div class="spin-box" id="spin-box">
+        ${dj ? `
+          <p class="label" style="margin-bottom:.4rem">${S.spinning ? 'Assigning...' : 'Your assigned job'}</p>
+          <p style="font-size:22px;font-weight:700;margin-bottom:.3rem">${dj.title}</p>
+          <p style="color:var(--text-muted);font-size:14px;margin-bottom:.4rem">${dj.employer}</p>
+          <p style="color:var(--text-muted);font-size:13px;line-height:1.6;margin-bottom:${S.job && !S.spinning ? '14px' : '0'}">${dj.desc}</p>
+          ${S.job && !S.spinning ? `<p class="mono" style="font-size:26px;font-weight:800;color:var(--primary);margin-top:.25rem">${cur(S.job.salary)}<span style="font-size:14px;font-weight:400;color:var(--text-muted);font-family:inherit">&nbsp;/year</span></p>` : ''}
+        ` : `<p style="color:var(--text-subtle);font-size:15px">Press spin to reveal your job assignment</p>`}
+      </div>
+    </div>
+    <p class="footnote">Salaries from U.S. Bureau of Labor Statistics (BLS) 2024 occupational data</p>
+    <div style="display:flex;gap:.75rem;justify-content:center;margin-top:.25rem">
+      ${(!S.job || S.spinning)
+        ? `<button class="btn-primary" id="btn-spin" style="min-width:140px;font-size:16px;padding:.75rem 1.5rem" ${S.spinning ? 'disabled' : ''}>${S.spinning ? 'Assigning...' : S.job ? 'Spin again' : 'Spin!'}</button>`
+        : `<button id="btn-spin" style="min-width:120px">Spin again</button>
+           <button class="btn-primary" id="btn-accept" style="min-width:160px">Accept this job →</button>`
+      }
+    </div>
+  `;
+}
+
+/* ===================================================================
+   RENDER — PAYSTUB
+   =================================================================== */
+function renderTaxBar(t) {
+  const fedPct  = (t.fed / t.mg * 100).toFixed(1);
+  const othPct  = ((t.pa + t.ss + t.mc) / t.mg * 100).toFixed(1);
+  const netPct  = (t.net / t.mg * 100).toFixed(1);
+  return `
+    <div style="margin: 1.25rem 0 .5rem">
+      <p class="label" style="margin-bottom:.6rem">Where your gross pay goes</p>
+      <div class="tax-bar-row">
+        <div class="tax-bar-seg" style="flex:${fedPct};background:#dc2626">${fedPct > 4 ? `Fed ${fedPct}%` : ''}</div>
+        <div class="tax-bar-seg" style="flex:${othPct};background:#f97316">${othPct > 4 ? `FICA/State ${othPct}%` : ''}</div>
+        <div class="tax-bar-seg" style="flex:${netPct};background:#16a34a">Take Home ${netPct}%</div>
+      </div>
+      <div class="tax-bar-leg">
+        <span class="tax-bar-dot">🔴 Federal income tax</span>
+        <span class="tax-bar-dot">🟠 FICA + State taxes</span>
+        <span class="tax-bar-dot">🟢 Your take-home pay</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderPaystub() {
+  const t = S.taxes, j = S.job;
+  const txpct = Math.round((t.tot / t.mg) * 100);
+  const deds = [
+    { label: 'Federal income tax',     amt: t.fed, note: '2024 IRS brackets, single filer — $14,600 standard deduction applied' },
+    { label: 'PA state income tax',    amt: t.pa,  note: '3.07% flat rate' },
+    { label: 'Social Security (FICA)', amt: t.ss,  note: '6.2% — funds future Social Security retirement benefits' },
+    { label: 'Medicare',               amt: t.mc,  note: '1.45% — funds Medicare health coverage for seniors' },
+  ];
+  return `
+    <p class="step-tag">Step 2 of 4 — Your Pay Stub</p>
+    <h1>Before you spend a single dollar...</h1>
+    <p style="color:var(--text-muted);margin-bottom:1.25rem">Congratulations on the job. But before any money reaches your account, the government takes its share. Here is your first monthly pay stub.</p>
+    <div class="card">
+      <div class="card-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem">
+        <div>
+          <p class="label">Employee</p>
+          <p style="font-weight:600">Student Employee</p>
+          <p style="color:var(--text-muted);font-size:13px">${j.title}</p>
+        </div>
+        <div style="text-align:right">
+          <p class="label">Employer</p>
+          <p style="font-size:14px">${j.employer}</p>
+          <p style="color:var(--text-subtle);font-size:12px">Pay period: monthly</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div>
+            <p style="font-weight:600">Gross pay (before taxes)</p>
+            <p style="font-size:12px;color:var(--text-subtle)">Annual salary ÷ 12 months</p>
+          </div>
+          <p class="mono" style="font-size:20px;font-weight:700;white-space:nowrap">${cur(t.mg, 2)}</p>
+        </div>
+        <p class="label" style="padding:.75rem 0 .4rem">Deductions</p>
+        ${deds.map(d => `
+          <div class="row">
+            <div>
+              <p style="font-size:14px">${d.label}</p>
+              <p class="ded-note">${d.note}</p>
+            </div>
+            <p class="mono" style="color:var(--danger-text);white-space:nowrap">− ${cur(d.amt, 2)}</p>
+          </div>
+        `).join('')}
+        ${renderTaxBar(t)}
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:1rem 0 0;border-top:2px solid var(--border);margin-top:.5rem;gap:1rem">
+          <div>
+            <p style="font-weight:700;font-size:16px">Net pay (take-home)</p>
+            <p style="font-size:12px;color:var(--text-subtle)">What you actually receive each month</p>
+          </div>
+          <p class="mono" style="font-size:28px;font-weight:800;color:var(--success-text);white-space:nowrap">${cur(t.net, 2)}</p>
+        </div>
+      </div>
+    </div>
+    <div class="alert alert-warn" style="margin-bottom:1.5rem">
+      <strong>The reality:</strong> You earn ${cur(j.salary)}/year but take home only ${cur(t.net * 12)}/year after taxes —
+      that is <strong>${txpct}% of every paycheck</strong> going to the government before you see a dollar. All eight spending decisions you make next come out of ${cur(t.net, 2)}/month.
+    </div>
+    <button class="btn-primary btn-full" id="btn-stations" style="padding:.85rem;font-size:15px;font-weight:600">Continue to spending stations →</button>
+  `;
+}
+
+/* ===================================================================
+   RENDER — STATIONS
+   =================================================================== */
+function renderStations() {
+  const st  = STATIONS[S.stIdx];
+  const meta = STATION_META[st.id];
+  const pct = (S.stIdx / STATIONS.length) * 100;
+  const sp  = totalSpent();
+  const rem = baseRemaining();
+  const t   = S.taxes;
+  const barPct   = budgetBarPct(sp, t.net);
+  const barColor = budgetBarColor(sp, t.net);
+
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+      <span style="font-size:13px;color:var(--text-muted)">Station ${S.stIdx + 1} of ${STATIONS.length}</span>
+      <span class="step-tag" style="margin:0">Step 3 of 4</span>
+    </div>
+    <div class="progress"><div class="progress-fill" style="width:${pct}%"></div></div>
+
+    <div class="budget-grid">
+      <div class="budget-cell">
+        <p class="label" style="font-size:10px">Monthly net pay</p>
+        <p class="mono" style="font-size:14px;font-weight:700">${cur(t.net, 2)}</p>
+      </div>
+      <div class="budget-cell">
+        <p class="label" style="font-size:10px">Spent so far</p>
+        <p class="mono" style="font-size:14px;font-weight:700;color:var(--danger-text)">${cur(sp, 2)}</p>
+      </div>
+      <div class="budget-cell">
+        <p class="label" style="font-size:10px">Remaining</p>
+        <p class="mono" style="font-size:14px;font-weight:700;color:${rem >= 0 ? 'var(--success-text)' : 'var(--danger-text)'}">${cur(rem, 2)}</p>
+      </div>
+    </div>
+    <div class="budget-bar-wrap">
+      <div class="budget-bar-fill" style="width:${barPct}%;background:${barColor}"></div>
+    </div>
+
+    <div class="card" style="border-top:5px solid ${meta.color}">
+      <div class="card-head">
+        <p class="label" style="margin-bottom:.3rem">${meta.emoji}&nbsp; ${st.name}</p>
+        <p style="color:var(--text-muted);font-size:14px;line-height:1.65">${st.blurb}</p>
+      </div>
+      <div class="card-body">
+        <p class="label" style="margin-bottom:.7rem">Make your choice</p>
+        ${st.choices.map((c, i) => {
+          const cost = choiceCost(c);
+          const sel  = S.selChoice === i;
+          return `
+            <div class="choice${sel ? ' selected' : ''}${c.warn ? ' warn-card' : ''}" data-ci="${i}">
+              <div>
+                <p style="font-weight:${sel ? '600' : '400'};font-size:15px">${c.label}</p>
+                <p style="font-size:12px;color:${c.warn ? 'var(--danger-text)' : 'var(--text-subtle)'}">${c.note}</p>
+              </div>
+              <p class="mono" style="white-space:nowrap;font-size:18px;font-weight:800;flex-shrink:0;color:${c.warn && !sel ? 'var(--danger-text)' : 'inherit'}">
+                ${cur(cost, 2)}<span style="font-size:11px;font-weight:400;color:var(--text-subtle);font-family:inherit">/mo</span>
+              </p>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+    <button class="btn-primary btn-full" id="btn-confirm"
+      ${S.selChoice === null ? 'disabled' : ''}
+      style="padding:.85rem;font-size:15px;font-weight:600">
+      ${S.stIdx < STATIONS.length - 1 ? 'Confirm & next station →' : 'Confirm & see what life throws at you →'}
+    </button>
+  `;
+}
+
+/* ===================================================================
+   RENDER — LIFE EVENT
+   =================================================================== */
+function renderLifeEvent() {
+  const { event: ev, outcome: out } = S.drawnEvents[S.evtIdx];
+  const isLast  = S.evtIdx === S.drawnEvents.length - 1;
+  const isGood  = out.type === 'good';
+  const isCrisis = out.type === 'crisis';
+
+  const bgColor  = isCrisis ? 'var(--danger-bg)'  : isGood ? 'var(--success-bg)'  : 'var(--warn-bg)';
+  const txColor  = isCrisis ? 'var(--danger-text)' : isGood ? 'var(--success-text)' : 'var(--warn-text)';
+  const bdColor  = isCrisis ? 'var(--danger-border)': isGood ? 'var(--success-border)' : 'var(--warn-border)';
+  const topColor = isCrisis ? '#dc2626' : isGood ? '#16a34a' : '#d97706';
+
+  const amtLabel = out.amt === 0 ? 'No impact' : out.amt > 0 ? `+ ${cur(out.amt)}` : `− ${cur(Math.abs(out.amt))}`;
+  const amtColor = out.amt > 0 ? '#16a34a' : out.amt < 0 ? '#dc2626' : 'var(--text-muted)';
+
+  return `
+    <p class="step-tag">Unexpected Event ${S.evtIdx + 1} of 2</p>
+    <h1>Something came up.</h1>
+    <p style="color:var(--text-muted);margin-bottom:1.5rem">Real life doesn't follow a budget. Here's what happened this month.</p>
+
+    <div class="card" style="border-top:5px solid ${topColor}">
+      <div class="event-body">
+        <div class="event-emoji">${ev.emoji}</div>
+        <h2 style="font-size:22px;font-weight:700;margin-bottom:.75rem">${ev.title}</h2>
+        <p style="color:var(--text-muted);font-size:15px;line-height:1.75;max-width:480px;margin:0 auto 1.5rem">${ev.story}</p>
+
+        <div class="event-outcome" style="background:${bgColor};border:1px solid ${bdColor}">
+          <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:${txColor};margin-bottom:.4rem">What happened</p>
+          <p style="color:${txColor};font-size:14px;line-height:1.7">${out.msg}</p>
+        </div>
+
+        <p style="font-size:34px;font-weight:800;color:${amtColor};font-family:var(--mono);margin-top:.25rem">
+          ${amtLabel}
+          <span style="font-size:14px;font-weight:400;color:var(--text-muted);font-family:inherit"> this month</span>
+        </p>
+      </div>
+    </div>
+
+    <button class="btn-primary btn-full" id="btn-next-event" style="padding:.85rem;font-size:15px;font-weight:600">
+      ${isLast ? 'See my final budget report →' : 'Next event →'}
+    </button>
+  `;
+}
+
+/* ===================================================================
+   RENDER — REPORT
+   =================================================================== */
+function renderReport() {
+  const j   = S.job, t = S.taxes;
+  const sp  = totalSpent();
+  const fin = finalRemaining();
+  const pctLeft = fin / t.net;
+
+  // Four-tier outcome
+  let tierClass, tierTitle, tierMsg;
+  if (fin < -200) {
+    tierClass = 'alert-danger';
+    tierTitle = `⚠️ Financial Crisis — You are ${cur(Math.abs(fin), 2)} over budget`;
+    tierMsg   = 'Your expenses plus unexpected events have pushed you well past your income. In real life, this means missed payments, credit card debt, and compounding interest. Something has to change immediately.';
+  } else if (fin < 0) {
+    tierClass = 'alert-danger';
+    tierTitle = `You are ${cur(Math.abs(fin), 2)} over budget this month`;
+    tierMsg   = 'Your expenses exceed your income. At least one spending decision needs to change — and life events made it worse.';
+  } else if (pctLeft < 0.10) {
+    tierClass = 'alert-warn';
+    tierTitle = `Barely making it — ${cur(fin, 2)} left over`;
+    tierMsg   = 'Technically you broke even, but one more unexpected expense would put you in the red. You have almost no margin for error.';
+  } else {
+    tierClass = 'alert-success';
+    tierTitle = `You have ${cur(fin, 2)} left over this month`;
+    tierMsg   = 'You are living within your means. Consider directing more money toward savings — you may need it for next month\'s events.';
+  }
+
+  const questions = [
+    'Was your income enough to cover all your needs? What surprised you most about the results?',
+    'How much of your gross pay went to taxes? Did that feel fair or unfair — explain your reasoning using specific numbers from your pay stub.',
+    'What was your single largest expense? Could you have made a different choice? What would the real-life tradeoff have been?',
+    'How did the unexpected life events affect your final balance? If you had made different choices at certain stations, would the outcome have been different? Give a specific example.',
+    'How might someone assigned a higher-paying job have experienced this simulation differently than you did? Give a specific example using salary numbers.',
+    'What does this simulation reveal about the relationship between education, career choice, and long-term financial stability?',
+  ];
+
+  return `
+    <p class="step-tag">Step 4 of 4 — Budget Report</p>
+    <h1>Your monthly budget report</h1>
+    <p style="color:var(--text-muted);margin-bottom:1.25rem">Here is how you did as a <strong>${j.title}</strong> earning ${cur(j.salary)}/year.</p>
+
+    <div class="alert ${tierClass}" style="text-align:center;padding:1.25rem">
+      <p style="font-size:18px;font-weight:700;margin-bottom:.35rem">${tierTitle}</p>
+      <p style="font-size:13px;line-height:1.65">${tierMsg}</p>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><p class="label">Income breakdown</p></div>
+      <div class="card-body">
+        <div class="row"><p style="color:var(--text-muted)">Annual salary</p><p class="mono">${cur(j.salary)}</p></div>
+        <div class="row"><p style="color:var(--text-muted)">Monthly gross pay</p><p class="mono">${cur(t.mg, 2)}</p></div>
+        <div class="row"><p style="color:var(--danger-text)">Total monthly taxes withheld</p><p class="mono" style="color:var(--danger-text)">− ${cur(t.tot, 2)}</p></div>
+        <div class="row" style="border-bottom:none;font-weight:700;font-size:16px">
+          <p>Monthly net pay</p><p class="mono" style="color:var(--success-text)">${cur(t.net, 2)}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><p class="label">Monthly spending decisions</p></div>
+      <div class="card-body">
+        ${STATIONS.map(st => {
+          const c = S.choices[st.id];
+          if (!c) return '';
+          const meta = STATION_META[st.id];
+          return `
+            <div class="row">
+              <div>
+                <p style="font-size:15px">${meta.emoji}&nbsp;${st.name}</p>
+                <p style="font-size:12px;color:var(--text-subtle)">${c.label}</p>
+              </div>
+              <p class="mono" style="white-space:nowrap;color:${c.warn ? 'var(--danger-text)' : 'var(--text-primary)'}">
+                ${cur(c.cost, 2)}
+              </p>
+            </div>
+          `;
+        }).join('')}
+        <div class="row" style="border-bottom:none;font-weight:700;border-top:2px solid var(--border);padding-top:.75rem;margin-top:.25rem;font-size:16px">
+          <p>Total monthly expenses</p>
+          <p class="mono" style="color:var(--danger-text)">− ${cur(sp, 2)}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="border-top:5px solid #7c3aed">
+      <div class="card-head">
+        <p class="label">⚡ Unexpected life events</p>
+        <p style="color:var(--text-muted);font-size:13px">These hit after you finished budgeting. You had no way to plan for them.</p>
+      </div>
+      <div class="card-body">
+        ${S.drawnEvents.map(({ event: ev, outcome: out }) => {
+          const isGood = out.amt >= 0;
+          const amtStr = out.amt === 0 ? '$0.00' : (isGood ? `+ ${cur(out.amt, 2)}` : `− ${cur(Math.abs(out.amt), 2)}`);
+          return `
+            <div class="row">
+              <div>
+                <p style="font-size:15px">${ev.emoji}&nbsp;${ev.title}</p>
+                <p style="font-size:12px;color:var(--text-subtle);max-width:400px;line-height:1.5">${out.msg}</p>
+              </div>
+              <p class="mono" style="white-space:nowrap;font-weight:700;color:${out.amt > 0 ? 'var(--success-text)' : out.amt < 0 ? 'var(--danger-text)' : 'var(--text-muted)'}">${amtStr}</p>
+            </div>
+          `;
+        }).join('')}
+        <div class="row" style="border-bottom:none;font-weight:700;border-top:2px solid var(--border);padding-top:.75rem;margin-top:.25rem;font-size:16px">
+          <p>Life event total</p>
+          <p class="mono" style="color:${S.lifeImpact >= 0 ? 'var(--success-text)' : 'var(--danger-text)'}">
+            ${S.lifeImpact >= 0 ? `+ ${cur(S.lifeImpact, 2)}` : `− ${cur(Math.abs(S.lifeImpact), 2)}`}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body" style="background:var(--bg-muted)">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
+          <div>
+            <p style="font-weight:700;font-size:18px">Final monthly balance</p>
+            <p style="font-size:13px;color:var(--text-muted)">Net pay − expenses ${S.lifeImpact !== 0 ? (S.lifeImpact > 0 ? '+ life events' : '− life events') : ''}</p>
+          </div>
+          <p class="mono" style="font-size:32px;font-weight:800;color:${fin >= 0 ? 'var(--success-text)' : 'var(--danger-text)'}">${fin >= 0 ? cur(fin, 2) : `−${cur(Math.abs(fin), 2)}`}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><p class="label">Reflection questions</p></div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:.85rem">Answer the following in writing as directed by your teacher. Use specific numbers from your report in your responses.</p>
+        <ol class="reflect-list" style="padding-left:1.25rem">
+          ${questions.map(q => `<li>${q}</li>`).join('')}
+        </ol>
+      </div>
+    </div>
+
+    <p class="footnote">Salary data: U.S. Bureau of Labor Statistics (BLS) 2024 &nbsp;·&nbsp; Tax data: 2024 IRS brackets + Pennsylvania state income tax (3.07% flat rate)</p>
+  `;
+}
+
+/* ===================================================================
+   SPIN LOGIC
+   =================================================================== */
+function doSpin() {
+  if (S.spinning) return;
+  S.spinning = true;
+  S.job      = null;
+  let idx    = Math.floor(Math.random() * JOBS.length);
+  S.spinJob  = JOBS[idx];
+  render();
+
+  let count = 0;
+  spIntvl = setInterval(() => {
+    idx = (idx + 1) % JOBS.length;
+    S.spinJob = JOBS[idx];
+    const box = document.getElementById('spin-box');
+    if (box) {
+      box.innerHTML = `
+        <p class="label" style="margin-bottom:.4rem">Assigning...</p>
+        <p style="font-size:22px;font-weight:700;margin-bottom:.3rem;color:var(--primary)">${JOBS[idx].title}</p>
+        <p style="color:var(--text-muted);font-size:14px">${JOBS[idx].employer}</p>
+      `;
+    }
+    count++;
+    if (count >= 32) {
+      clearInterval(spIntvl);
+      S.spinning = false;
+      S.job      = JOBS[idx];
+      S.spinJob  = null;
+      S.taxes    = calcTaxes(S.job.salary);
+      render();
+    }
+  }, 75);
+}
+
+/* ===================================================================
+   RENDER + ATTACH
+   =================================================================== */
+function render() {
+  const app = document.getElementById('app');
+  if      (S.phase === 'intro')       app.innerHTML = renderIntro();
+  else if (S.phase === 'spin')        app.innerHTML = renderSpin();
+  else if (S.phase === 'paystub')     app.innerHTML = renderPaystub();
+  else if (S.phase === 'stations')    app.innerHTML = renderStations();
+  else if (S.phase === 'life_events') app.innerHTML = renderLifeEvent();
+  else if (S.phase === 'report')      app.innerHTML = renderReport();
+  attach();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function attach() {
+  const on = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
+
+  on('btn-start',    () => { S.phase = 'spin'; render(); });
+  on('btn-spin',     () => doSpin());
+  on('btn-accept',   () => { S.phase = 'paystub'; render(); });
+  on('btn-stations', () => { S.phase = 'stations'; S.stIdx = 0; S.choices = {}; S.selChoice = null; render(); });
+
+  on('btn-confirm', () => {
+    if (S.selChoice === null) return;
+    const st   = STATIONS[S.stIdx];
+    const c    = st.choices[S.selChoice];
+    const cost = choiceCost(c);
+    S.choices[st.id] = { label: c.label, cost, warn: c.warn || false };
+    S.selChoice = null;
+    if (S.stIdx < STATIONS.length - 1) {
+      S.stIdx++;
+      render();
+    } else {
+      drawLifeEvents();
+      S.phase  = 'life_events';
+      S.evtIdx = 0;
+      render();
+    }
+  });
+
+  on('btn-next-event', () => {
+    if (S.evtIdx < S.drawnEvents.length - 1) {
+      S.evtIdx++;
+      render();
+    } else {
+      S.phase = 'report';
+      render();
+    }
+  });
+
+  document.querySelectorAll('.choice').forEach(el => {
+    el.addEventListener('click', () => {
+      S.selChoice = parseInt(el.dataset.ci);
+      render();
+    });
+  });
+}
+
+render();
+</script>
+</body>
+</html>
